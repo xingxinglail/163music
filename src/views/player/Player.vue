@@ -155,6 +155,7 @@ export default class Player extends Vue {
             if (Array.isArray(res.songs) && res.songs.length > 0) {
                 this.actionAddSong(res.songs[0]);
                 this.onSlideChange(this.getterPlaylist.length - 1);
+                // todo 刷新swiper
                 // (this.$refs.slide as any).refresh();
                 this.initialIndex = this.getterPlaylist.length - 1;
             }
