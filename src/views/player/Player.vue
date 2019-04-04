@@ -138,10 +138,8 @@ export default class Player extends Vue {
                 speed: 500,
                 on: {
                     slideChange () {
-                        if (swiperInstance) {
-                            that.actionPlay();
-                            that.onSlideChange(swiperInstance.realIndex);
-                        }
+                        that.actionPlay();
+                        if (swiperInstance) that.onSlideChange(swiperInstance.realIndex);
                     }
                 }
             });
@@ -154,10 +152,14 @@ export default class Player extends Vue {
             const res = await getSongDetail(this.id);
             if (Array.isArray(res.songs) && res.songs.length > 0) {
                 this.actionAddSong(res.songs[0]);
-                this.onSlideChange(this.getterPlaylist.length - 1);
-                // todo 刷新swiper
-                // (this.$refs.slide as any).refresh();
                 this.initialIndex = this.getterPlaylist.length - 1;
+                this.onSlideChange(this.initialIndex);
+                this.$nextTick(() => {
+                    if (swiperInstance) {
+                        swiperInstance.update();
+                        swiperInstance.slideTo(this.initialIndex, 0);
+                    }
+                });
             }
         } catch (err) {
             console.error(err);

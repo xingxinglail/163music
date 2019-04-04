@@ -145,7 +145,13 @@ export default class PlayerFooter extends Vue {
         const that = this;
         audio.addEventListener('canplay', function () {
             canplay = true;
-            if (that.getterIsPlaying) void audio.play();
+            if (that.getterIsPlaying) {
+                audio.play()
+                    .catch(err => {
+                        console.error(err);
+                        that.togglePlay(false);
+                    });
+            }
         });
         /* audio.addEventListener('progress', function () {
             console.log(this.duration);
