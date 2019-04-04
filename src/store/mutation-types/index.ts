@@ -5,3 +5,4 @@ export const PLAYER_SWITCH: string = 'PLAYER_SWITCH'; // 切换音乐
 export const PLAYER_SET_SONGURL: string = 'PLAYER_SET_SONGURL'; // 设置音乐url
 export const PLAYER_TOGGLE_PLAY: string = 'PLAYER_TOGGLE_PLAY'; // 设置播放暂停
 export const PLAYER_SWITCH_MODE: string = 'PLAYER_SWITCH_MODE'; // 切换播放模式
+export const PLAYER_UPDATE_PLAYINDEXLIST: string = 'PLAYER_UPDATE_PLAYINDEXLIST'; // 更新索引列表
