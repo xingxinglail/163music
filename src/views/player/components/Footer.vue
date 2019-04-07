@@ -24,10 +24,13 @@
         </div>
         <div class="progress-container">
             <div class="time">{{ currentDuration }}</div>
-            <div class="progress">
-                <div class="percent current" :style="{ width: currentPercent }"></div>
+            <div class="progress" ref="progress">
+                <div class="percent current"></div>
                 <div class="percent load" :style="{ width: loadPercent }"></div>
-                <div class="indicator" :style="{ left: currentPercent }">
+                <div class="indicator"
+                     @touchstart="touchstart"
+                     @touchmove="touchmove"
+                     @touchend="touchend">
                     <div></div>
                 </div>
             </div>
@@ -85,7 +88,15 @@ import { Song, PlayMode } from '../../../store/modules/player';
 import { padLeftZeor } from '../../../utils';
 
 const audio: HTMLAudioElement = document.createElement('audio');
-let canplay = false;
+let progressDom: HTMLElement | null = null;
+let currentProgressDom: HTMLElement | null = null;
+let indicatorDom: HTMLElement | null = null;
+let canplay: boolean = false;
+let touchStartX: number = 0;
+let progressWidth: number = 0;
+let indicatorDomLeft: number = 0;
+let indicatorLeftPercent: number = 0;
+let isTouched: boolean = false;
 
 @Component
 export default class PlayerFooter extends Vue {
@@ -97,7 +108,6 @@ export default class PlayerFooter extends Vue {
     @Action('togglePlay') actionTogglePlay!: Function;
     @Action('switchMode') actionSwitchMode!: Function;
 
-    currentPercent: string = '0%';
     loadPercent: string = '0%';
     currentDuration: string = '00:00';
     totalDuration: string = '00:00';
@@ -108,7 +118,6 @@ export default class PlayerFooter extends Vue {
         this.currentDuration = '00:00';
         if (val) {
             canplay = false;
-            this.currentPercent = '0%';
             this.loadPercent = '0%';
             audio.src = `https://music.163.com/song/media/outer/url?id=${val.id}.mp3`;
             this.totalDuration = this.formatDuration(val.duration);
@@ -117,6 +126,14 @@ export default class PlayerFooter extends Vue {
 
     created (): void {
         this.audioListener();
+        this.$nextTick(() => {
+            progressDom = (this.$refs as any).progress;
+            if (progressDom) {
+                progressWidth = progressDom.offsetWidth;
+                currentProgressDom = progressDom.querySelector('.current');
+                indicatorDom = progressDom.querySelector('.indicator');
+            }
+        });
     }
 
     play (): void {
@@ -152,6 +169,7 @@ export default class PlayerFooter extends Vue {
 
     audioListener (): void {
         const that = this;
+        let currentTime: number = 0;
         audio.addEventListener('canplay', function () {
             canplay = true;
             if (that.getterIsPlaying) {
@@ -175,10 +193,19 @@ export default class PlayerFooter extends Vue {
                 }
             }
         });
-        audio.addEventListener('timeupdate', function () {
-            const time: number = this.currentTime * 1000;
-            if (that.getterCurrentSong) that.currentPercent = `${Math.ceil(time / that.getterCurrentSong.duration * 100)}%`;
-            that.currentDuration = that.formatDuration(time);
+        audio.addEventListener('timeupdate', function (): void {
+            if (isTouched) return;
+            const _time: number = parseInt(this.currentTime + '', 10);
+            if (currentTime !== _time) {
+                const time: number = this.currentTime * 1000;
+                currentTime = _time;
+                if (that.getterCurrentSong) {
+                    const width: number = Math.ceil(time / that.getterCurrentSong.duration * progressWidth);
+                    if (indicatorDom) indicatorDom.style.left = `${width}px`;
+                    if (currentProgressDom) currentProgressDom.style.width = `${width}px`;
+                }
+                that.currentDuration = that.formatDuration(time);
+            }
         });
 
         audio.addEventListener('ended', function () {
@@ -189,6 +216,46 @@ export default class PlayerFooter extends Vue {
                 that.nextOrPrev('next');
             }
         });
+    }
+
+    touchstart (e: any): void {
+        isTouched = true;
+        if (indicatorDom) indicatorDomLeft = indicatorDom.offsetLeft;
+        touchStartX = e.touches[0].pageX;
+    }
+
+    touchmove (e: TouchEvent): void {
+        let left = e.touches[0].pageX - touchStartX + indicatorDomLeft;
+        if (left < 0) left = 0;
+        if (left > progressWidth) left = progressWidth;
+        if (indicatorDom) indicatorDom.style.left = `${left}px`;
+        if (currentProgressDom) currentProgressDom.style.width = `${left}px`;
+        indicatorLeftPercent = left / progressWidth;
+        if (this.getterCurrentSong) {
+            this.currentDuration = this.formatDuration(indicatorLeftPercent * this.getterCurrentSong.duration);
+        }
+    }
+
+    touchend (): void {
+        isTouched = false;
+        if (this.getterCurrentSong) audio.currentTime = indicatorLeftPercent * this.getterCurrentSong.duration / 1000;
+    }
+
+    mousedown (e: MouseEvent) {
+        e.preventDefault();
+        const startX: number = e.pageX;
+        let offsetLeft: number = 0;
+        if (indicatorDom) offsetLeft = indicatorDom.offsetLeft;
+        document.body.onmousemove = (de: MouseEvent) => {
+            let left: number = de.pageX - startX + offsetLeft;
+            if (left < 0) left = 0;
+            if (left > progressWidth) left = progressWidth;
+            if (indicatorDom) indicatorDom.style.left = `${left}px`;
+            if (currentProgressDom) currentProgressDom.style.width = `${left}px`;
+        };
+        document.body.onmouseup = () => {
+            document.body.onmousemove = null;
+        };
     }
 }
 </script>
@@ -264,8 +331,8 @@ export default class PlayerFooter extends Vue {
                 width: 26px;
                 height: 26px;
                 padding: 4px;
-                margin: -13px 0 0 -13px;
                 z-index: 3;
+                transform: translate(-13px, -13px);
 
                 div {
                     border: 6px solid #fff;
