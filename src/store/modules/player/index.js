@@ -1,5 +1,5 @@
-import { PLAYER_PLAY, PLAYER_ADD, PLAYER_SET_PLAYLIST, PLAYER_SWITCH, PLAYER_TOGGLE_PLAY, PLAYER_SWITCH_MODE } from '../../mutation-types';
-import { setLocalItem, getLocalItem } from '../../../utils';
+import { PLAYER_PLAY, PLAYER_ADD, PLAYER_SET_PLAYLIST, PLAYER_SWITCH, PLAYER_TOGGLE_PLAY, PLAYER_SWITCH_MODE, PLAYER_UPDATE_PLAYINDEXLIST } from '../../mutation-types';
+import { setLocalItem, getLocalItem, shuffle } from '../../../utils';
 const saveKey = 'player';
 export var PlayMode;
 (function (PlayMode) {
@@ -22,12 +22,13 @@ export const state = {
     isPlaying: false,
     mode: saveData ? saveData.mode : PlayMode.ListLoop,
     playlist: saveData ? saveData.playlist : [],
-    playlistIndex: []
+    playlistIndex: saveData ? saveData.playlistIndex : []
 };
 const getters = {
     isPlaying: (state) => state.isPlaying,
     mode: (state) => state.mode,
     playlist: (state) => state.playlist,
+    playlistIndex: (state) => state.playlistIndex,
     currentSong(state) {
         const data = state.playlist.find(c => c.id === state.currentId);
         if (data)
@@ -45,17 +46,16 @@ const mutations = {
             state.playlistIndex.push(state.playlist.push(payload) - 1);
         }
         state.currentId = payload.id;
-        // state.isPlaying = true;
-        setLocalItem(saveKey, JSON.stringify(state));
     },
     [PLAYER_SET_PLAYLIST](state, payload) {
         state.playlist = payload;
+        state.playlistIndex = payload.map((c, index) => index);
         state.currentId = payload[0].id;
         state.isPlaying = true;
-        setLocalItem(saveKey, JSON.stringify(state));
     },
     [PLAYER_SWITCH](state, payload) {
-        const data = state.playlist[payload];
+        const index = state.playlistIndex[payload];
+        const data = state.playlist[index];
         if (data) {
             state.currentId = data.id;
             setLocalItem(saveKey, JSON.stringify(state));
@@ -67,6 +67,18 @@ const mutations = {
     },
     [PLAYER_SWITCH_MODE](state, payload) {
         state.mode = payload;
+    },
+    [PLAYER_UPDATE_PLAYINDEXLIST](state) {
+        switch (state.mode) {
+            case PlayMode.ListLoop:
+                state.playlistIndex = state.playlist.map((c, i) => i);
+                break;
+            case PlayMode.Random:
+                state.playlistIndex = shuffle(state.playlistIndex);
+                break;
+            default:
+                break;
+        }
         setLocalItem(saveKey, JSON.stringify(state));
     }
 };
@@ -116,6 +128,7 @@ const actions = {
         if (index > playMode.length - 1)
             index = 0;
         context.commit(PLAYER_SWITCH_MODE, playMode[index]);
+        context.commit(PLAYER_UPDATE_PLAYINDEXLIST);
     }
 };
 export default {

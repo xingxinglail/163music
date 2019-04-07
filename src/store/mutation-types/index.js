@@ -5,4 +5,5 @@ export const PLAYER_SWITCH = 'PLAYER_SWITCH'; // 切换音乐
 export const PLAYER_SET_SONGURL = 'PLAYER_SET_SONGURL'; // 设置音乐url
 export const PLAYER_TOGGLE_PLAY = 'PLAYER_TOGGLE_PLAY'; // 设置播放暂停
 export const PLAYER_SWITCH_MODE = 'PLAYER_SWITCH_MODE'; // 切换播放模式
+export const PLAYER_UPDATE_PLAYINDEXLIST = 'PLAYER_UPDATE_PLAYINDEXLIST'; // 更新索引列表
 //# sourceMappingURL=index.js.map

@@ -25,9 +25,9 @@
         <div class="progress-container">
             <div class="time">{{ currentDuration }}</div>
             <div class="progress">
-                <div class="percent current"></div>
-                <div class="percent load"></div>
-                <div class="indicator">
+                <div class="percent current" :style="{ width: currentPercent }"></div>
+                <div class="percent load" :style="{ width: loadPercent }"></div>
+                <div class="indicator" :style="{ left: currentPercent }">
                     <div></div>
                 </div>
             </div>
@@ -97,6 +97,8 @@ export default class PlayerFooter extends Vue {
     @Action('togglePlay') actionTogglePlay!: Function;
     @Action('switchMode') actionSwitchMode!: Function;
 
+    currentPercent: string = '0%';
+    loadPercent: string = '0%';
     currentDuration: string = '00:00';
     totalDuration: string = '00:00';
     playMode = PlayMode;
@@ -104,9 +106,10 @@ export default class PlayerFooter extends Vue {
     @Watch('getterCurrentSong', { immediate: true })
     onCurrentSongChanged (val: Song): void {
         this.currentDuration = '00:00';
-        audio.src = '';
         if (val) {
             canplay = false;
+            this.currentPercent = '0%';
+            this.loadPercent = '0%';
             audio.src = `https://music.163.com/song/media/outer/url?id=${val.id}.mp3`;
             this.totalDuration = this.formatDuration(val.duration);
         }
@@ -125,11 +128,17 @@ export default class PlayerFooter extends Vue {
         if (!status) {
             audio.pause();
         } else {
-            if (canplay) void audio.play();
+            if (canplay) {
+                audio.play()
+                    .catch(err => {
+                        console.error(err);
+                    });
+            }
         }
     }
 
     nextOrPrev (action: string) {
+        canplay = false;
         this.$emit('change-song', action);
         this.togglePlay(true);
     }
@@ -153,22 +162,23 @@ export default class PlayerFooter extends Vue {
                     });
             }
         });
-        /* audio.addEventListener('progress', function () {
-            console.log(this.duration);
+        audio.addEventListener('progress', function () {
             const duration: number = this.duration;
             if (duration > 0) {
                 const buffered: TimeRanges = this.buffered;
                 const len: number = buffered.length;
                 for (let i: number = 0; i < len; i++) {
                     if (buffered.start(len - 1 - i) < this.currentTime) {
-                        console.log(`${Math.floor((buffered.end(len - 1 - i) / duration) * 100)}%`);
+                        that.loadPercent = `${Math.floor((buffered.end(len - 1 - i) / duration) * 100)}%`;
                         break;
                     }
                 }
             }
-        }); */
+        });
         audio.addEventListener('timeupdate', function () {
-            that.currentDuration = that.formatDuration(this.currentTime * 1000);
+            const time: number = this.currentTime * 1000;
+            if (that.getterCurrentSong) that.currentPercent = `${Math.ceil(time / that.getterCurrentSong.duration * 100)}%`;
+            that.currentDuration = that.formatDuration(time);
         });
 
         audio.addEventListener('ended', function () {
@@ -237,15 +247,13 @@ export default class PlayerFooter extends Vue {
                 border-radius: 6px;
 
                 &.current {
-                    width: 80%;
                     z-index: 2;
                     background-color: $themeColor;
                 }
 
                 &.load {
-                    width: 30%;
                     z-index: 1;
-                    background-color: #d0d0d0;
+                    background-color: #717171;
                 }
             }
 

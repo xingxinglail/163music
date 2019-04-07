@@ -39,6 +39,16 @@ export function padLeftZeor (num: number): string {
     return num + '';
 }
 
+export function shuffle<T> (arr: T[]): T[] {
+    for (let i = arr.length - 1; i >= 0; i--) {
+        const randomIndex: number = Math.floor(Math.random() * (i + 1));
+        const itemAtIndex: T = arr[randomIndex];
+        arr[randomIndex] = arr[i];
+        arr[i] = itemAtIndex;
+    }
+    return arr;
+}
+
 const _prefixKey: string = 'star_';
 export function getLocalItem (key: string): string {
     return window.localStorage.getItem(_prefixKey + key) || '';

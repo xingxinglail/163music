@@ -19,13 +19,13 @@
                 <div class="swiper-container plate-container" ref="swiper">
                     <div class="swiper-wrapper">
                         <div class="swiper-slide slide"
-                             v-for="item in getterPlaylist"
-                             :key="item.id">
+                             v-for="item in getterPlaylistIndex"
+                             :key="getterPlaylist[item].id">
                             <div>
                                 <div class="light"></div>
                                 <div class="plate">
                                     <div class="img-box">
-                                        <img :src="item.picUrl">
+                                        <img :src="getterPlaylist[item].picUrl">
                                     </div>
                                 </div>
                             </div>
@@ -72,7 +72,7 @@
 </template>
 
 <script lang="ts">
-import { Vue, Component, Prop } from 'vue-property-decorator';
+import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
 import { Getter, Action } from 'vuex-class';
 import Swiper from 'swiper';
 import { Song } from '../../store/modules/player';
@@ -80,6 +80,7 @@ import SongFooter from './components/Footer.vue';
 import { getSongDetail } from '../../api';
 
 let swiperInstance: Swiper | null = null;
+let canPlay: boolean = true;
 
 @Component({
     components: {
@@ -88,13 +89,29 @@ let swiperInstance: Swiper | null = null;
 })
 export default class Player extends Vue {
     @Prop(String) readonly id!: string;
+    @Getter('mode') getterMode!: string;
     @Getter('playlist') getterPlaylist!: Song[];
+    @Getter('playlistIndex') getterPlaylistIndex!: number[];
     @Getter('currentSong') getterCurrentSong!: Song;
     @Action('addSong') actionAddSong!: Function;
     @Action('switchMusic') actionSwitchMusic!: Function;
     @Action('play') actionPlay!: Function;
 
     initialIndex: number = 0;
+
+    @Watch('getterMode')
+    onModeChanged (val: string): void {
+        this.$forceUpdate();
+        canPlay = false;
+        const index = this.getterPlaylist.findIndex(c => c.id === this.getterCurrentSong.id);
+        if (index !== - 1) {
+            const _index = this.getterPlaylistIndex.findIndex(c => c === index);
+            if (_index !== -1) {
+                this.initialIndex = _index;
+                if (swiperInstance) swiperInstance.slideTo(_index, 0);
+            }
+        }
+    }
 
     created () {
         this.initSwiper();
@@ -123,8 +140,11 @@ export default class Player extends Vue {
         } */
         const index = this.getterPlaylist.findIndex(c => +c.id === +this.id);
         if (index !== -1) {
-            this.initialIndex = index;
-            this.onSlideChange(index);
+            let _index = this.getterPlaylistIndex.findIndex(c => c === index);
+            if (_index) {
+                this.initialIndex = _index;
+                this.onSlideChange(_index);
+            }
         } else {
             void this.getSongDetail();
         }
@@ -138,8 +158,12 @@ export default class Player extends Vue {
                 speed: 500,
                 on: {
                     slideChange () {
-                        that.actionPlay();
-                        if (swiperInstance) that.onSlideChange(swiperInstance.realIndex);
+                        if (canPlay) {
+                            that.actionPlay();
+                            if (swiperInstance) that.onSlideChange(swiperInstance.realIndex);
+                        } else {
+                            canPlay = true;
+                        }
                     }
                 }
             });
@@ -152,7 +176,7 @@ export default class Player extends Vue {
             const res = await getSongDetail(this.id);
             if (Array.isArray(res.songs) && res.songs.length > 0) {
                 this.actionAddSong(res.songs[0]);
-                this.initialIndex = this.getterPlaylist.length - 1;
+                this.initialIndex = this.getterPlaylistIndex.length - 1;
                 this.onSlideChange(this.initialIndex);
                 this.$nextTick(() => {
                     if (swiperInstance) {
@@ -168,11 +192,12 @@ export default class Player extends Vue {
 
     onChangeSong (action: string): void {
         if (action === 'prev') {
-            if (this.initialIndex > 0) this.initialIndex--;
+            this.initialIndex--;
+            if (this.initialIndex < 0) this.initialIndex = this.getterPlaylistIndex.length - 1;
         }
         if (action === 'next') {
             this.initialIndex++;
-            if (this.initialIndex > this.getterPlaylist.length - 1) this.initialIndex = this.getterPlaylist.length - 1;
+            if (this.initialIndex > this.getterPlaylistIndex.length - 1) this.initialIndex = 0;
         }
         if (swiperInstance) swiperInstance.slideTo(this.initialIndex, 500);
         this.onSlideChange(this.initialIndex);
