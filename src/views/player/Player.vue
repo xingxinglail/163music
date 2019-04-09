@@ -347,13 +347,13 @@ export default class Player extends Vue {
                     }
 
                     .light {
-                        background-image: url(../../assets/images/light_plus.png);
+                        /*background-image: url(../../assets/images/light_plus.png);*/
                         z-index: 2;
                     }
 
                     .plate {
                         background-image: url(../../assets/images/plate.png);
-                        background-image: url(../../assets/images/plate2.png);
+                        /*background-image: url(../../assets/images/plate2.png);*/
 
                         .img-box {
                             position: absolute;
