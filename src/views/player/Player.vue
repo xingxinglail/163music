@@ -352,16 +352,17 @@ export default class Player extends Vue {
                     }
 
                     .plate {
-                        background-image: url(../../assets/images/plate.png);
+                        /*background-image: url(../../assets/images/plate.png);*/
                         /*background-image: url(../../assets/images/plate2.png);*/
+                        background-image: url(../../assets/images/plate3.png);
 
                         .img-box {
                             position: absolute;
                             top: 50%;
                             left: 50%;
-                            width: 184Px;
-                            height: 184Px;
-                            margin: -92Px 0 0 -92Px;
+                            width: 190Px;
+                            height: 190Px;
+                            margin: -95Px 0 0 -95Px;
                             border-radius: 50%;
                             overflow: hidden;
 
