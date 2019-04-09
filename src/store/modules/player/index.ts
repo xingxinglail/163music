@@ -74,12 +74,21 @@ const mutations = {
             state.playlistIndex.push(state.playlist.push(payload) - 1);
         }
         state.currentId = payload.id;
+        setLocalItem(saveKey, JSON.stringify(state));
     },
     [PLAYER_SET_PLAYLIST] (state: State, payload: Song[]) {
         state.playlist = payload;
-        state.playlistIndex = payload.map((c, index) => index);
+        const playlistIndex = payload.map((c, index) => index);
+        if (state.mode === PlayMode.Random) {
+            const firstIndex: number | undefined = playlistIndex.shift();
+            state.playlistIndex = shuffle<number>(playlistIndex);
+            if (typeof firstIndex === 'number') state.playlistIndex.unshift(firstIndex);
+        } else {
+            state.playlistIndex = playlistIndex;
+        }
         state.currentId = payload[0].id;
         state.isPlaying = true;
+        setLocalItem(saveKey, JSON.stringify(state));
     },
     [PLAYER_SWITCH] (state: State, payload: number) {
         const index: number = state.playlistIndex[payload];

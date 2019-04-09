@@ -160,10 +160,10 @@ export default class Player extends Vue {
                     slideChange () {
                         if (canPlay) {
                             that.actionPlay();
-                            if (swiperInstance) that.onSlideChange(swiperInstance.realIndex);
                         } else {
                             canPlay = true;
                         }
+                        if (swiperInstance) that.onSlideChange(swiperInstance.realIndex);
                     }
                 }
             });
