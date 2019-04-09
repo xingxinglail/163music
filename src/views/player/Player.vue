@@ -15,6 +15,9 @@
         </div>
         <div class="body">
             <div class="play-container">
+                <div class="stick">
+                    <img src="../../assets/images/stick.png">
+                </div>
                 <div class="plate-wrapper"></div>
                 <div class="swiper-container plate-container" ref="swiper">
                     <div class="swiper-wrapper">
@@ -306,11 +309,23 @@ export default class Player extends Vue {
         .play-container {
             position: absolute;
             z-index: 1;
-            top: 50%;
+            top: 100px;
             left: 0;
             width: 100%;
             height: 296Px;
-            margin-top: -160Px;
+
+            .stick {
+                position: absolute;
+                top: -100px;
+                left: 50%;
+                width: 110px;
+                margin-left: -22px;
+                z-index: 5;
+
+                img {
+                    width: 100%;
+                }
+            }
 
             .plate-wrapper {
                 position: absolute;
