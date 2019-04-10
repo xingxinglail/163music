@@ -15,16 +15,22 @@
         </div>
         <div class="body">
             <div class="play-container">
-                <div class="stick">
-                    <img src="../../assets/images/stick.png">
+                <div class="stick-container">
+                    <img class="torr-wrapper" src="../../assets/images/torr_wrapper.png">
+                    <img class="torr" src="../../assets/images/torr.png">
+                    <img class="stick"
+                         :class="{ playing: getterIsPlaying }"
+                         src="../../assets/images/stick.png">
                 </div>
                 <div class="plate-wrapper"></div>
-                <div class="swiper-container plate-container" ref="swiper">
+                <div class="swiper-container plate-container"
+                     :class="{ paused: !getterIsPlaying }"
+                     ref="swiper">
                     <div class="swiper-wrapper">
                         <div class="swiper-slide slide"
-                             v-for="item in getterPlaylistIndex"
+                             v-for="(item, index) in getterPlaylistIndex"
                              :key="getterPlaylist[item].id">
-                            <div>
+                            <div :class="{ running: initialIndex === index }">
                                 <div class="light"></div>
                                 <div class="plate">
                                     <div class="img-box">
@@ -92,6 +98,7 @@ let canPlay: boolean = true;
 })
 export default class Player extends Vue {
     @Prop(String) readonly id!: string;
+    @Getter('isPlaying') getterIsPlaying!: boolean;
     @Getter('mode') getterMode!: string;
     @Getter('playlist') getterPlaylist!: Song[];
     @Getter('playlistIndex') getterPlaylistIndex!: number[];
@@ -160,13 +167,16 @@ export default class Player extends Vue {
             swiperInstance = new Swiper(swiperDom, {
                 speed: 500,
                 on: {
-                    slideChange () {
+                    slideChangeTransitionEnd () {
                         if (canPlay) {
                             that.actionPlay();
                         } else {
                             canPlay = true;
                         }
-                        if (swiperInstance) that.onSlideChange(swiperInstance.realIndex);
+                        if (swiperInstance) {
+                            that.initialIndex = swiperInstance.realIndex;
+                            that.onSlideChange(that.initialIndex);
+                        }
                     }
                 }
             });
@@ -194,16 +204,17 @@ export default class Player extends Vue {
     }
 
     onChangeSong (action: string): void {
+        let index: number = this.initialIndex;
         if (action === 'prev') {
-            this.initialIndex--;
-            if (this.initialIndex < 0) this.initialIndex = this.getterPlaylistIndex.length - 1;
+            index--;
+            if (index < 0) index = this.getterPlaylistIndex.length - 1;
         }
         if (action === 'next') {
-            this.initialIndex++;
-            if (this.initialIndex > this.getterPlaylistIndex.length - 1) this.initialIndex = 0;
+            index++;
+            if (index > this.getterPlaylistIndex.length - 1) index = 0;
         }
-        if (swiperInstance) swiperInstance.slideTo(this.initialIndex, 500);
-        this.onSlideChange(this.initialIndex);
+        if (swiperInstance) swiperInstance.slideTo(index, 500);
+        this.onSlideChange(index);
     }
 
     onSlideChange (index: number): void {
@@ -314,16 +325,43 @@ export default class Player extends Vue {
             width: 100%;
             height: 296Px;
 
-            .stick {
+            .stick-container {
                 position: absolute;
-                top: -100px;
+                top: -96px;
                 left: 50%;
-                width: 110px;
-                margin-left: -22px;
+                width: 28px;
+                height: 28px;
+                transform: translateX(-50%);
                 z-index: 5;
 
-                img {
-                    width: 100%;
+                .torr-wrapper {
+                    width: 28px;
+                    height: 28px;
+                }
+
+                .torr {
+                    position: absolute;
+                    z-index: 2;
+                    top: 4px;
+                    left: 4px;
+                    width: 20px;
+                    height: 20px;
+                    transform: translateZ(0);
+                }
+
+                .stick {
+                    position: absolute;
+                    z-index: 1;
+                    top: 14px;
+                    left: 12px;
+                    width: 160px;
+                    transform-origin: top left;
+                    transform: rotate(14deg);
+                    transition: transform .3s linear;
+
+                    &.playing {
+                        transform: rotate(36deg);
+                    }
                 }
             }
 
@@ -341,14 +379,16 @@ export default class Player extends Vue {
             }
 
             .plate-container {
-                animation-play-state: paused;
 
                 .slide > div {
                     width: 296Px;
                     height: 296Px;
                     margin: 0 auto;
                     position: relative;
-                    animation: circling 20s infinite linear;
+
+                    &.running {
+                        animation: circling 20s infinite linear;
+                    }
 
                     .light, .plate {
                         position: absolute;
@@ -387,13 +427,20 @@ export default class Player extends Vue {
                         }
                     }
                 }
+
+                &.paused {
+
+                    .slide > div {
+                        animation-play-state: paused;
+                    }
+                }
             }
 
         }
     }
 
     .footer {
-        @include flex-item(0 0 20vh);
+        @include flex-item(0 0 24vh);
     }
 }
 </style>

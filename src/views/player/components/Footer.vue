@@ -155,8 +155,11 @@ export default class PlayerFooter extends Vue {
     }
 
     nextOrPrev (action: string) {
+        const prevSongId = this.getterCurrentSong.id;
         canplay = false;
         this.$emit('change-song', action);
+        // 解决只有一首歌切换时，暂停后就无法播放
+        if (prevSongId === this.getterCurrentSong.id) canplay = true;
         this.togglePlay(true);
     }
 
