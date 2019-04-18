@@ -19,12 +19,12 @@
                     <img class="torr-wrapper" src="../../assets/images/torr_wrapper.png">
                     <img class="torr" src="../../assets/images/torr.png">
                     <img class="stick"
-                         :class="{ playing: getterIsPlaying }"
+                         :class="{ playing: getterIsPlaying && !isSliderMove }"
                          src="../../assets/images/stick.png">
                 </div>
                 <div class="plate-wrapper"></div>
                 <div class="swiper-container plate-container"
-                     :class="{ paused: !getterIsPlaying }"
+                     :class="{ paused: !getterIsPlaying || isSliderMove }"
                      ref="swiper">
                     <div class="swiper-wrapper">
                         <div class="swiper-slide slide"
@@ -108,6 +108,7 @@ export default class Player extends Vue {
     @Action('play') actionPlay!: Function;
 
     initialIndex: number = 0;
+    isSliderMove: boolean = false;
 
     @Watch('getterMode')
     onModeChanged (val: string): void {
@@ -177,6 +178,12 @@ export default class Player extends Vue {
                             that.initialIndex = swiperInstance.realIndex;
                             that.onSlideChange(that.initialIndex);
                         }
+                    },
+                    sliderMove () {
+                        if (!that.isSliderMove) that.isSliderMove = true;
+                    },
+                    transitionEnd () {
+                        that.isSliderMove = false;
                     }
                 }
             });

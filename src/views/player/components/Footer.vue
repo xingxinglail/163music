@@ -86,8 +86,10 @@ import { Vue, Component, Watch } from 'vue-property-decorator';
 import { State, Getter, Action } from 'vuex-class';
 import { Song, PlayMode } from '../../../store/modules/player';
 import { padLeftZeor } from '../../../utils';
+import { player } from '../../../utils/audio';
 
-const audio: HTMLAudioElement = document.createElement('audio');
+// const audio: HTMLAudioElement = document.createElement('audio');
+const audio: HTMLAudioElement = player();
 let progressDom: HTMLElement | null = null;
 let currentProgressDom: HTMLElement | null = null;
 let indicatorDom: HTMLElement | null = null;
@@ -173,7 +175,54 @@ export default class PlayerFooter extends Vue {
     audioListener (): void {
         const that = this;
         let currentTime: number = 0;
-        audio.addEventListener('canplay', function () {
+        player({
+            onCanplay (): void {
+                canplay = true;
+                if (that.getterIsPlaying) {
+                    audio.play()
+                        .catch(err => {
+                            console.error(err);
+                            that.togglePlay(false);
+                        });
+                }
+            },
+            onProgress (): void {
+                const duration: number = audio.duration;
+                if (duration > 0) {
+                    const buffered: TimeRanges = audio.buffered;
+                    const len: number = buffered.length;
+                    for (let i: number = 0; i < len; i++) {
+                        if (buffered.start(len - 1 - i) < audio.currentTime) {
+                            that.loadPercent = `${Math.floor((buffered.end(len - 1 - i) / duration) * 100)}%`;
+                            break;
+                        }
+                    }
+                }
+            },
+            onTimeupdate (): void {
+                if (isTouched) return;
+                const _time: number = parseInt(audio.currentTime + '', 10);
+                if (currentTime !== _time) {
+                    const time: number = audio.currentTime * 1000;
+                    currentTime = _time;
+                    if (that.getterCurrentSong) {
+                        const width: number = Math.ceil(time / that.getterCurrentSong.duration * progressWidth);
+                        if (indicatorDom) indicatorDom.style.left = `${width}px`;
+                        if (currentProgressDom) currentProgressDom.style.width = `${width}px`;
+                    }
+                    that.currentDuration = that.formatDuration(time);
+                }
+            },
+            onEnded (): void {
+                if (PlayMode.SongLoop === that.getterMode) {
+                    audio.currentTime = 0;
+                    that.play();
+                } else {
+                    that.nextOrPrev('next');
+                }
+            }
+        });
+        /* audio.addEventListener('canplay', function () {
             canplay = true;
             if (that.getterIsPlaying) {
                 audio.play()
@@ -182,8 +231,8 @@ export default class PlayerFooter extends Vue {
                         that.togglePlay(false);
                     });
             }
-        });
-        audio.addEventListener('progress', function () {
+        }); */
+        /*audio.addEventListener('progress', function () {
             const duration: number = this.duration;
             if (duration > 0) {
                 const buffered: TimeRanges = this.buffered;
@@ -195,8 +244,8 @@ export default class PlayerFooter extends Vue {
                     }
                 }
             }
-        });
-        audio.addEventListener('timeupdate', function (): void {
+        });*/
+        /*audio.addEventListener('timeupdate', function (): void {
             if (isTouched) return;
             const _time: number = parseInt(this.currentTime + '', 10);
             if (currentTime !== _time) {
@@ -209,16 +258,15 @@ export default class PlayerFooter extends Vue {
                 }
                 that.currentDuration = that.formatDuration(time);
             }
-        });
-
-        audio.addEventListener('ended', function () {
+        });*/
+        /*audio.addEventListener('ended', function () {
             if (PlayMode.SongLoop === that.getterMode) {
                 this.currentTime = 0;
                 that.play();
             } else {
                 that.nextOrPrev('next');
             }
-        });
+        });*/
     }
 
     touchstart (e: any): void {
