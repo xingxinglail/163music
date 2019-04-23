@@ -20,6 +20,7 @@ export enum PlayMode {
 
 export interface Song {
     id: number; // 歌曲id
+    pic: string | number; // 歌曲图片id
     name: string; // 歌名
     picUrl: string; // 封面图
     singer: string; // 歌手
@@ -134,6 +135,7 @@ const actions = {
                         id,
                         name,
                         picUrl: al.picUrl,
+                        pic: al.pic_str || al.pic,
                         singer: ar[0].name,
                         duration: dt
                     };
@@ -146,6 +148,7 @@ const actions = {
                     id,
                     name,
                     picUrl: al.picUrl,
+                    pic: al.pic_str || al.pic,
                     singer: ar[0].name,
                     duration: dt
                 };

@@ -1,6 +1,9 @@
 <template>
     <div class="song">
-        <div class="bg"></div>
+        <!--<div class="bg"
+             ref="bg"
+             :style="{ backgroundImage: bgSrc }"></div>-->
+        <background :src="bgSrc" />
         <div class="header">
             <svg class="icon prev" aria-hidden="true" @click="back">
                 <use xlink:href="#icon-iconfront-"></use>
@@ -34,48 +37,17 @@
                                 <div class="light"></div>
                                 <div class="plate">
                                     <div class="img-box">
-                                        <img :src="getterPlaylist[item].picUrl">
+                                        <img class="swiper-lazy" :data-src="getterPlaylist[item].picUrl">
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <!--<cube-slide class="plate-container"
-                            ref="slide"
-                            :initialIndex="initialIndex"
-                            :show-dots="false"
-                            :auto-play="false"
-                            :loop="false"
-                            :speed="500"
-                            @change="onSlideChange">
-                    <cube-slide-item class="slide"
-                                     v-for="item in getterPlaylist"
-                                     :key="item.id">
-                        <div>
-                            <div class="light"></div>
-                            <div class="plate">
-                                <div class="img-box">
-                                    <img :src="item.picUrl">
-                                </div>
-                            </div>
-                        </div>
-                    </cube-slide-item>
-                </cube-slide>-->
-                <!--<div class="plate-container">
-                    <div>
-                        <div class="light"></div>
-                        <div class="plate">
-                            <div class="img-box">
-                                <img src="http://p2.music.126.net/NQBaw13hHiaTh41QQUYsQg==/109951162922231753.jpg?imageView&thumbnail=360y360&quality=75&tostatic=0" alt="">
-                            </div>
-                        </div>
-                    </div>
-                </div>-->
             </div>
         </div>
         <div class="footer">
-            <song-footer @change-song="onChangeSong" />
+            <song-footer @change-song="onChangeSong" @bgurl="onBgurl" />
         </div>
     </div>
 </template>
@@ -86,14 +58,17 @@ import { Getter, Action } from 'vuex-class';
 import Swiper from 'swiper';
 import { Song } from '../../store/modules/player';
 import SongFooter from './components/Footer.vue';
+import Background from './components/Background.vue';
 import { getSongDetail } from '../../api';
 
 let swiperInstance: Swiper | null = null;
 let canPlay: boolean = true;
+let toggleBgTimer: number = 0;
 
 @Component({
     components: {
-        SongFooter
+        SongFooter,
+        Background
     }
 })
 export default class Player extends Vue {
@@ -109,6 +84,9 @@ export default class Player extends Vue {
 
     initialIndex: number = 0;
     isSliderMove: boolean = false;
+    bgSrc: string = '';
+    isLoadingBg: boolean = true;
+    isLoadendBg: boolean = false;
 
     @Watch('getterMode')
     onModeChanged (val: string): void {
@@ -126,29 +104,6 @@ export default class Player extends Vue {
 
     created () {
         this.initSwiper();
-        /* if (this.id === '0') {
-            const { id } = this.getterCurrentSong;
-            this.$router.replace({
-                name: 'Player',
-                params: {
-                    id: id ? id + '' : '0'
-                }
-            });
-        } */
-        /* if (this.getterCurrentSong) {
-            if (this.id * 1 === this.getterCurrentSong.id) {
-                const index = this.getterPlaylist.findIndex(c => c.id === this.getterCurrentSong.id);
-                if (index !== -1) {
-                    this.initialIndex = index;
-                } else {
-                    void this.getSongDetail();
-                }
-            } else {
-                void this.getSongDetail();
-            }
-        } else {
-            void this.getSongDetail();
-        } */
         const index = this.getterPlaylist.findIndex(c => +c.id === +this.id);
         if (index !== -1) {
             let _index = this.getterPlaylistIndex.findIndex(c => c === index);
@@ -167,6 +122,9 @@ export default class Player extends Vue {
             const swiperDom: HTMLElement = (this.$refs as any).swiper;
             swiperInstance = new Swiper(swiperDom, {
                 speed: 500,
+                lazy: {
+                    loadPrevNext: true
+                },
                 on: {
                     slideChangeTransitionEnd () {
                         if (canPlay) {
@@ -237,18 +195,33 @@ export default class Player extends Vue {
     back (): void {
         this.$router.back();
     }
+
+    onBgurl (url: string): void {
+        clearTimeout(toggleBgTimer);
+        toggleBgTimer = setTimeout(() => {
+            const image = new Image();
+            image.src = url;
+            image.onerror = e => {
+                console.error(e);
+            };
+            image.onload = (): void => {
+                this.bgSrc = `url(${url})`;
+            };
+        }, 800);
+    }
 }
 </script>
 
 <style lang="scss" scoped>
 @import '../../assets/scss/variable';
 
-@keyframes circling{
+@keyframes circling {
     0% {
-        transform:rotate(0deg)
+        transform: rotate(0deg);
     }
-    to{
-        transform:rotate(1turn)
+
+    100% {
+        transform: rotate(1turn);
     }
 }
 
@@ -261,34 +234,9 @@ export default class Player extends Vue {
     height: 100%;
     @include flexbox(normal, normal, column);
 
-    .bg {
-        position: absolute;
-        z-index: 1;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-image: url(https://p3.music.126.net/WOpgkb_LtunWas8qzzLF8w==/109951163078215926.jpg);
-        background-repeat: no-repeat;
-        background-size: cover;
-        background-position: center;
-        transform: scale(1);
-        transform-origin: center top;
-
-        &::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, .5);
-        }
-    }
-
-    & > div {
+    .header, .body, .footer {
         position: relative;
-        z-index: 2;
+        z-index: 5;
     }
 
     .header {
@@ -409,13 +357,10 @@ export default class Player extends Vue {
                     }
 
                     .light {
-                        /*background-image: url(../../assets/images/light_plus.png);*/
                         z-index: 2;
                     }
 
                     .plate {
-                        /*background-image: url(../../assets/images/plate.png);*/
-                        /*background-image: url(../../assets/images/plate2.png);*/
                         background-image: url(../../assets/images/plate3.png);
 
                         .img-box {
@@ -427,6 +372,8 @@ export default class Player extends Vue {
                             margin: -95Px 0 0 -95Px;
                             border-radius: 50%;
                             overflow: hidden;
+                            background: url(../../assets/images/placeholder.png) no-repeat;
+                            background-size: contain;
 
                             img {
                                 width: 100%;

@@ -40,7 +40,6 @@ export default class PlayList extends Vue {
         try {
             const res = await getPlayList(this.id);
             if (res.playlist) {
-                console.log(res);
                 this.data = res.playlist;
             }
         } catch (err) {

@@ -107,6 +107,7 @@ const actions = {
                         id,
                         name,
                         picUrl: al.picUrl,
+                        pic: al.pic_str || al.pic,
                         singer: ar[0].name,
                         duration: dt
                     };
@@ -120,6 +121,7 @@ const actions = {
                     id,
                     name,
                     picUrl: al.picUrl,
+                    pic: al.pic_str || al.pic,
                     singer: ar[0].name,
                     duration: dt
                 };

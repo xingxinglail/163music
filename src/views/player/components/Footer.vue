@@ -123,6 +123,7 @@ export default class PlayerFooter extends Vue {
             this.loadPercent = '0%';
             audio.src = `https://music.163.com/song/media/outer/url?id=${val.id}.mp3`;
             this.totalDuration = this.formatDuration(val.duration);
+            this.$emit('bgurl', `//music.163.com/api/img/blur/${val.pic}`);
         }
     }
 
