@@ -1,8 +1,5 @@
 <template>
     <div class="song">
-        <!--<div class="bg"
-             ref="bg"
-             :style="{ backgroundImage: bgSrc }"></div>-->
         <background :src="bgSrc" />
         <div class="header">
             <svg class="icon prev" aria-hidden="true" @click="back">
