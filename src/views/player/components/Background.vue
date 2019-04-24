@@ -1,27 +1,17 @@
 <template>
     <div class="background">
         <transition name="bgfade" mode="in-out">
-            <div :key="number" :style="{ backgroundImage: src }"></div>
-            <!--<div key="prev" v-show="number % 2 !== 1" :style="{ backgroundImage: src }"></div>-->
+            <div :key="src" :style="{ backgroundImage: src }"></div>
         </transition>
     </div>
 </template>
 
 <script lang="ts">
-import { Vue, Prop, Watch, Component } from 'vue-property-decorator';
+import { Vue, Prop, Component } from 'vue-property-decorator';
 
 @Component
 export default class Background extends Vue {
     @Prop({ type: String, default: '' }) readonly src!: string;
-
-    number: number = 0;
-
-    @Watch('src')
-    onChildChanged (val: string): void {
-        if (val) {
-            this.number++;
-        }
-    }
 }
 </script>
 

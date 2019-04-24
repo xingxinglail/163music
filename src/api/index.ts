@@ -115,3 +115,24 @@ export const getSongDetail = (ids: string): Promise<any> => {
             });
     });
 };
+
+// 获取歌词
+export const getSongLyric = (id: string): Promise<any> => {
+    return new Promise((resolve, reject) => {
+        axios.get('/lyric', {
+            params: {
+                id
+            }
+        })
+            .then(res => {
+                if (res && res.data && res.data.code === 200) {
+                    resolve(res.data);
+                } else {
+                    reject(res);
+                }
+            })
+            .catch(err => {
+                reject(err);
+            });
+    });
+};
