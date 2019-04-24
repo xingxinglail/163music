@@ -1,6 +1,7 @@
 <template>
     <div class="song">
         <background :src="bgSrc" />
+        <lyric :visibile.sync="showLyric" />
         <div class="header">
             <svg class="icon prev" aria-hidden="true" @click="back">
                 <use xlink:href="#icon-iconfront-"></use>
@@ -13,38 +14,40 @@
                 <use xlink:href="#icon-fenxiang"></use>
             </svg>
         </div>
-        <div class="body">
-            <div class="play-container">
-                <div class="stick-container">
-                    <img class="torr-wrapper" src="../../assets/images/torr_wrapper.png">
-                    <img class="torr" src="../../assets/images/torr.png">
-                    <img class="stick"
-                         :class="{ playing: getterIsPlaying && !isSliderMove }"
-                         src="../../assets/images/stick.png">
-                </div>
-                <div class="plate-wrapper"></div>
-                <div class="swiper-container plate-container"
-                     :class="{ paused: !getterIsPlaying || isSliderMove }"
-                     ref="swiper">
-                    <div class="swiper-wrapper">
-                        <div class="swiper-slide slide"
-                             v-for="(item, index) in getterPlaylistIndex"
-                             :key="getterPlaylist[item].id">
-                            <div :class="{ running: initialIndex === index }">
-                                <div class="light"></div>
-                                <div class="plate">
-                                    <div class="img-box">
-                                        <img class="swiper-lazy" :data-src="getterPlaylist[item].picUrl">
+        <div class="body" @click="showLyric = true">
+            <transition name="fade">
+                <div class="play-container" v-show="!showLyric">
+                    <div class="stick-container">
+                        <img class="torr-wrapper" src="../../assets/images/torr_wrapper.png">
+                        <img class="torr" src="../../assets/images/torr.png">
+                        <img class="stick"
+                             :class="{ playing: getterIsPlaying && !isSliderMove }"
+                             src="../../assets/images/stick.png">
+                    </div>
+                    <div class="plate-wrapper"></div>
+                    <div class="swiper-container plate-container"
+                         :class="{ paused: !getterIsPlaying || isSliderMove }"
+                         ref="swiper">
+                        <div class="swiper-wrapper">
+                            <div class="swiper-slide slide"
+                                 v-for="(item, index) in getterPlaylistIndex"
+                                 :key="getterPlaylist[item].id">
+                                <div :class="{ running: initialIndex === index }">
+                                    <div class="light"></div>
+                                    <div class="plate">
+                                        <div class="img-box">
+                                            <img class="swiper-lazy" :data-src="getterPlaylist[item].picUrl">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </transition>
         </div>
         <div class="footer">
-            <song-footer @change-song="onChangeSong" @bgurl="onBgurl" />
+            <song-footer :visibile="showLyric" @change-song="onChangeSong" @bgurl="onBgurl" />
         </div>
     </div>
 </template>
@@ -56,7 +59,8 @@ import Swiper from 'swiper';
 import { Song } from '../../store/modules/player';
 import SongFooter from './components/Footer.vue';
 import Background from './components/Background.vue';
-import { getSongDetail } from '../../api';
+import Lyric from './components/Lyric.vue';
+import { getSongDetail, getSongLyric } from '../../api';
 
 let swiperInstance: Swiper | null = null;
 let canPlay: boolean = true;
@@ -65,7 +69,8 @@ let toggleBgTimer: number = 0;
 @Component({
     components: {
         SongFooter,
-        Background
+        Background,
+        Lyric
     }
 })
 export default class Player extends Vue {
@@ -82,8 +87,7 @@ export default class Player extends Vue {
     initialIndex: number = 0;
     isSliderMove: boolean = false;
     bgSrc: string = '';
-    isLoadingBg: boolean = true;
-    isLoadendBg: boolean = false;
+    showLyric: boolean = false;
 
     @Watch('getterMode')
     onModeChanged (val: string): void {
@@ -106,7 +110,6 @@ export default class Player extends Vue {
             let _index = this.getterPlaylistIndex.findIndex(c => c === index);
             if (_index) {
                 this.initialIndex = _index;
-                this.onSlideChange(_index);
             }
         } else {
             void this.getSongDetail();
@@ -142,7 +145,11 @@ export default class Player extends Vue {
                     }
                 }
             });
-            if (swiperInstance) swiperInstance.slideTo(this.initialIndex, 0);
+            if (this.initialIndex === 0) {
+                void this.getSongLyric(this.id);
+            } else {
+                if (swiperInstance) swiperInstance.slideTo(this.initialIndex, 0);
+            }
         });
     }
 
@@ -165,6 +172,15 @@ export default class Player extends Vue {
         }
     }
 
+    async getSongLyric (id: string): Promise<void> {
+        try {
+            // const res = await getSongLyric(this.id);
+            console.log(id);
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
     onChangeSong (action: string): void {
         let index: number = this.initialIndex;
         if (action === 'prev') {
@@ -176,7 +192,6 @@ export default class Player extends Vue {
             if (index > this.getterPlaylistIndex.length - 1) index = 0;
         }
         if (swiperInstance) swiperInstance.slideTo(index, 500);
-        this.onSlideChange(index);
     }
 
     onSlideChange (index: number): void {
@@ -187,6 +202,7 @@ export default class Player extends Vue {
                 id: this.getterCurrentSong.id + ''
             }
         });
+        void this.getSongLyric(this.getterCurrentSong.id + '');
     }
 
     back (): void {

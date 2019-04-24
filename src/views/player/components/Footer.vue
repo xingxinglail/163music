@@ -1,6 +1,6 @@
 <template>
     <div class="song-footer">
-        <div class="tool-container">
+        <div class="tool-container" :class="{ opacity: visibile }">
             <div class="tool">
                 <svg class="icon" aria-hidden="true">
                     <use xlink:href="#icon-jushoucang"></use>
@@ -82,7 +82,7 @@
 </template>
 
 <script lang="ts">
-import { Vue, Component, Watch } from 'vue-property-decorator';
+import { Vue, Component, Prop, Watch } from 'vue-property-decorator';
 import { State, Getter, Action } from 'vuex-class';
 import { Song, PlayMode } from '../../../store/modules/player';
 import { padLeftZeor } from '../../../utils';
@@ -102,6 +102,7 @@ let isTouched: boolean = false;
 
 @Component
 export default class PlayerFooter extends Vue {
+    @Prop({ type: Boolean, default: false }) readonly visibile!: boolean;
     @State('playMode') statePlayMode!: string[];
     @Getter('mode') getterMode!: string;
     @Getter('isPlaying') getterIsPlaying!: boolean;
@@ -325,6 +326,11 @@ export default class PlayerFooter extends Vue {
 
     .tool-container, .play-tool-container {
         @include flexbox(center, space-evenly);
+
+        &.opacity {
+            opacity: 0;
+            transition: opacity .3s linear;
+        }
 
         .tool {
             padding: 8px;

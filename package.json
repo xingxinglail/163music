@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "axios": "^0.18.0",
+    "better-scroll": "^1.15.2",
     "cube-ui": "~1.12.1",
     "register-service-worker": "^1.5.2",
     "swiper": "^4.5.0",
@@ -22,6 +23,7 @@
     "vuex-class": "^0.3.2"
   },
   "devDependencies": {
+    "@types/better-scroll": "^1.12.1",
     "@types/chai": "^4.1.0",
     "@types/mocha": "^5.2.4",
     "@types/swiper": "^4.4.2",

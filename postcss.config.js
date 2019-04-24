@@ -17,9 +17,10 @@ module.exports = {
             mediaQuery: false
         },
         "cssnano": {
-            preset: "advanced",
-            autoprefixer: false,
-            "postcss-zindex": false
+            "cssnano-preset-advanced": {
+                zindex: false,
+                autoprefixer: false
+            }
         }
     }
 }
