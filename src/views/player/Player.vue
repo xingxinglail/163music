@@ -145,11 +145,7 @@ export default class Player extends Vue {
                     }
                 }
             });
-            if (this.initialIndex === 0) {
-                void this.getSongLyric(this.id);
-            } else {
-                if (swiperInstance) swiperInstance.slideTo(this.initialIndex, 0);
-            }
+            if (this.initialIndex !== 0 && swiperInstance) swiperInstance.slideTo(this.initialIndex, 0);
         });
     }
 
@@ -167,15 +163,6 @@ export default class Player extends Vue {
                     }
                 });
             }
-        } catch (err) {
-            console.error(err);
-        }
-    }
-
-    async getSongLyric (id: string): Promise<void> {
-        try {
-            // const res = await getSongLyric(this.id);
-            console.log(id);
         } catch (err) {
             console.error(err);
         }
@@ -202,7 +189,6 @@ export default class Player extends Vue {
                 id: this.getterCurrentSong.id + ''
             }
         });
-        void this.getSongLyric(this.getterCurrentSong.id + '');
     }
 
     back (): void {
