@@ -3,27 +3,10 @@
         <div class="lyric" v-show="visibile" @click="close">
             <div class="scroll-container" ref="scroll">
                 <ul>
-                    <li>斯蒂芬斯蒂123芬斯蒂芬</li>
-                    <li>斯蒂芬斯电56饭锅蒂芬斯蒂芬斯蒂芬斯蒂芬斯蒂芬斯蒂芬斯蒂芬斯蒂芬</li>
-                    <li>斯蒂芬斯23蒂芬斯蒂芬</li>
-                    <li>斯蒂芬斯8蒂阿斯蒂芬芬斯蒂芬斯蒂芬斯蒂芬斯蒂芬</li>
-                    <li>斯蒂芬斯4爽肤水蒂芬斯蒂芬</li>
-                    <li>斯蒂芬斯斯90蒂芬蒂芬斯蒂芬</li>
-                    <li>斯蒂芬是电-饭锅电饭锅斯蒂芬斯蒂芬</li>
-                    <li>斯蒂芬斯蒂123芬斯蒂芬</li>
-                    <li>斯蒂芬斯电56饭锅蒂芬斯蒂芬斯蒂芬斯蒂芬斯蒂芬斯蒂芬斯蒂芬斯蒂芬</li>
-                    <li>斯蒂芬斯23蒂芬斯蒂芬</li>
-                    <li>斯蒂芬斯8蒂阿斯蒂芬芬斯蒂芬斯蒂芬斯蒂芬斯蒂芬</li>
-                    <li>斯蒂芬斯4爽肤水蒂芬斯蒂芬</li>
-                    <li>斯蒂芬斯斯90蒂芬蒂芬斯蒂芬</li>
-                    <li>斯蒂芬是电-饭锅电饭锅斯蒂芬斯蒂芬</li>
-                    <li>斯蒂芬斯蒂123芬斯蒂芬</li>
-                    <li>斯蒂芬斯电56饭锅蒂芬斯蒂芬斯蒂芬斯蒂芬斯蒂芬斯蒂芬斯蒂芬斯蒂芬</li>
-                    <li>斯蒂芬斯23蒂芬斯蒂芬</li>
-                    <li>斯蒂芬斯8蒂阿斯蒂芬芬斯蒂芬斯蒂芬斯蒂芬斯蒂芬</li>
-                    <li>斯蒂芬斯4爽肤水蒂芬斯蒂芬</li>
-                    <li>斯蒂芬斯斯90蒂芬蒂芬斯蒂芬</li>
-                    <li>斯蒂芬是电-饭锅电饭锅斯蒂芬斯蒂芬</li>
+                    <li v-for="(item, index) in lyricData"
+                        :key="item.time"
+                        :class="{ active: prevIndex === index }"
+                        ref="lis">{{ item.text }}</li>
                 </ul>
             </div>
         </div>
@@ -38,17 +21,38 @@ import { getSongLyric } from '../../../api';
 
 let bscroll: BScroll | null = null;
 const parseReg: RegExp = /\[\d*:\d*((\.|\:)\d*)*\]/g;
+const parseReg2: RegExp = /\d*,\d*/g;
+let liDoms: HTMLLIElement[] | null = null;
+let mode: number = 1; // 1 正常歌词  2 过渡歌词
 
 @Component
 export default class Lyric extends Vue {
     @Prop({ type: Boolean, default: false }) readonly visibile!: boolean;
+    @Prop(String) readonly id!: string;
 
+    prevIndex: number = 0;
     lyric: string = '';
+    lyricData: any[] = [];
 
     created (): void {
+        const that = this;
         player({
             onTimeupdate () {
-                console.log((this as HTMLAudioElement).currentTime);
+                const { lyricData } = that;
+                let currentTime: number = (this as HTMLAudioElement).currentTime * 1000;
+                if (currentTime >= lyricData[that.prevIndex].time) {
+                    const p: number = (currentTime - lyricData[that.prevIndex].time) / lyricData[that.prevIndex].totalProgress;
+                    console.log('-------->' + Math.floor(p * 100));
+                }
+                for (let i = lyricData.length - 1; i >= 0; i--) {
+                    if (currentTime >= lyricData[i].time) {
+                        if (that.prevIndex !== i) {
+                            that.prevIndex = i;
+                            that.scrollToElement(that.prevIndex);
+                        }
+                        break;
+                    }
+                }
                 /* if (currentTime !== _time) {
                     const time: number = audio.currentTime * 1000;
                     currentTime = _time;
@@ -63,17 +67,21 @@ export default class Lyric extends Vue {
         });
     }
 
+    scrollToElement (index: number): void {
+        if (bscroll && liDoms) bscroll.scrollToElement(liDoms[index], 500);
+    }
+
     async getSongLyric (): Promise<void> {
         try {
             console.log(window.localStorage.getItem('klyric'));
             console.log(window.localStorage.getItem('lrc'));
-            const lyric: string | null = window.localStorage.getItem('lrc');
-            /*const res = await getSongLyric(this.id);
+            const lyric: string | null = window.localStorage.getItem('klyric');
+            /* const res = await getSongLyric(this.id);
             if (res.klyric) {
                 window.localStorage.setItem('klyric', res.klyric.lyric)
                 window.localStorage.setItem('lrc', res.lrc.lyric)
-            }*/
-            if (lyric) this.lyricParse(lyric);
+            } */
+            if (lyric) this.lyricParse2(lyric);
         } catch (err) {
             console.error(err);
         }
@@ -89,12 +97,10 @@ export default class Lyric extends Vue {
 
     lyricParse (lyric: string): void {
         const lyricList: string[] = lyric.split(/\n/);
-        const lyricData = new Array(lyricList.length);
-        console.log(lyricList);
+        const lyricData: any[] = [];
         lyricList.forEach((c: string, i: number): void => {
             const parse = c.match(parseReg);
             if (parse) {
-                console.log(i);
                 const str: string = parse[0].substring(1, parse[0].length - 1);
                 const timeArr: any[] = str.split(':');
                 const minutes2Seconds: number = timeArr[0] * 1 * 60;
@@ -103,8 +109,49 @@ export default class Lyric extends Vue {
                     time: Math.floor((minutes2Seconds + seconds) * 1000) / 1000,
                     text: c.replace(parseReg, '')
                 };
-                lyricData[i] = data;
+                if (data.text) lyricData.push(data);
             }
+        });
+        this.lyricData = lyricData;
+        this.$nextTick(() => {
+            if (!bscroll) this.initBScroll();
+            liDoms = (this.$refs as any).lis;
+        });
+        console.log(lyricData);
+    }
+
+    lyricParse2 (lyric: string): void {
+        mode = 2;
+        const lyricList: string[] = lyric.split(/\n/);
+        const lyricData: any[] = [];
+        lyricList.forEach((c: string, i: number): void => {
+            const parse = c.match(parseReg2);
+            if (parse) {
+                const timeStr: string | undefined = parse.shift();
+                let timeArr: any[] | null = null;
+                let time: number | null = null;
+                let totalProgress: number | null = null;
+                if (timeStr) timeArr = timeStr.split(',');
+                if (timeArr) time = timeArr[0] * 1;
+                if (timeArr) totalProgress = timeArr[1] * 1;
+                // const progressArr: number[] = new Array(parse.length);
+                /*parse.forEach((p: string, pi: number): void => {
+                    const str: any[] = p.split(',');
+                    progressArr[pi] = str[1] * 1;
+                });*/
+                const data = {
+                    time,
+                    totalProgress,
+                    // progressArr,
+                    text: c.replace(/[\d,()[\]]/g, '')
+                };
+                if (data.text) lyricData.push(data);
+            }
+        });
+        this.lyricData = lyricData;
+        this.$nextTick(() => {
+            if (!bscroll) this.initBScroll();
+            liDoms = (this.$refs as any).lis;
         });
         console.log(lyricData);
     }
@@ -113,9 +160,6 @@ export default class Lyric extends Vue {
     onVisibileChanged (v: boolean) {
         if (v) {
             void this.getSongLyric();
-            if (!bscroll) {
-                this.initBScroll();
-            }
         }
     }
 }
@@ -147,6 +191,11 @@ export default class Lyric extends Vue {
 
             li {
                 padding: 10px 0;
+
+                &.active {
+                    color: #e6e6e6;
+                    transition: color .3s linear;
+                }
             }
         }
     }

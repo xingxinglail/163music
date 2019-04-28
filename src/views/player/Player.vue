@@ -1,7 +1,7 @@
 <template>
     <div class="song">
         <background :src="bgSrc" />
-        <lyric :visibile.sync="showLyric" />
+        <lyric :id="id" :visibile.sync="showLyric" />
         <div class="header">
             <svg class="icon prev" aria-hidden="true" @click="back">
                 <use xlink:href="#icon-iconfront-"></use>
