@@ -17,6 +17,7 @@
 import BScroll from 'better-scroll';
 import { Vue, Component, Watch, Prop } from 'vue-property-decorator';
 import { player } from '../../../utils/audio';
+import { setSessionItem, getSessionItem } from '../../../utils';
 import { getSongLyric } from '../../../api';
 
 let bscroll: BScroll | null = null;
@@ -24,12 +25,21 @@ const parseReg: RegExp = /\[\d*:\d*((\.|\:)\d*)*\]/g;
 const parseReg2: RegExp = /\d*,\d*/g;
 let liDoms: HTMLLIElement[] | null = null;
 let mode: number = 1; // 1 正常歌词  2 过渡歌词
+let isGetLyric: boolean = true; // 是否需要获取歌词
+const saveKey: string = 'lyric';
+
+enum SongType {
+    Normal = 1, // 正常歌词
+    Advance = 2, // 推进歌词
+    None = 3 // 无歌词
+}
 
 @Component
 export default class Lyric extends Vue {
     @Prop({ type: Boolean, default: false }) readonly visibile!: boolean;
     @Prop(String) readonly id!: string;
 
+    songType: SongType = SongType.Normal;
     prevIndex: number = 0;
     lyric: string = '';
     lyricData: any[] = [];
@@ -38,18 +48,20 @@ export default class Lyric extends Vue {
         const that = this;
         player({
             onTimeupdate () {
+                if (!that.visibile) return;
                 const { lyricData } = that;
                 let currentTime: number = (this as HTMLAudioElement).currentTime * 1000;
                 if (currentTime >= lyricData[that.prevIndex].time) {
-                    const p: number = (currentTime - lyricData[that.prevIndex].time) / lyricData[that.prevIndex].totalProgress;
-                    console.log('-------->' + Math.floor(p * 100));
+                    let percent: number = (currentTime - lyricData[that.prevIndex].time) / lyricData[that.prevIndex].totalProgress;
+                    percent = Math.floor(percent * 100);
+                    if (percent > 100) percent = 100;
+                    if (liDoms) liDoms[that.prevIndex].style.backgroundPosition = `${100 - percent}% 50%`;
                 }
                 for (let i = lyricData.length - 1; i >= 0; i--) {
+                    if (i === that.prevIndex) return;
                     if (currentTime >= lyricData[i].time) {
-                        if (that.prevIndex !== i) {
-                            that.prevIndex = i;
-                            that.scrollToElement(that.prevIndex);
-                        }
+                        that.prevIndex = i;
+                        that.scrollToElement(that.prevIndex);
                         break;
                     }
                 }
@@ -73,15 +85,60 @@ export default class Lyric extends Vue {
 
     async getSongLyric (): Promise<void> {
         try {
-            console.log(window.localStorage.getItem('klyric'));
-            console.log(window.localStorage.getItem('lrc'));
-            const lyric: string | null = window.localStorage.getItem('klyric');
-            /* const res = await getSongLyric(this.id);
-            if (res.klyric) {
-                window.localStorage.setItem('klyric', res.klyric.lyric)
-                window.localStorage.setItem('lrc', res.lrc.lyric)
-            } */
-            if (lyric) this.lyricParse2(lyric);
+            if (this.lyricData.length > 0) {
+                this.lyricData = [];
+                this.$nextTick(() => {
+                    if (bscroll) bscroll.refresh();
+                });
+            }
+            isGetLyric = false;
+            const lrcData: string | null = getSessionItem(saveKey);
+            console.log(lrcData);
+            if (lrcData === null) {
+                const res = await getSongLyric(this.id);
+                console.log(res);
+                const data = Object.create(null);
+                const _lrcData = {
+                    type: SongType.Normal,
+                    lrc: ''
+                };
+                const { klyric, lrc } = res;
+                if (klyric && klyric.lyric) {
+                    this.lyricParse2(klyric.lyric);
+                    this.songType = SongType.Advance;
+                    _lrcData.lrc = klyric.lyric;
+                    _lrcData.type = this.songType;
+                    data[this.id] = _lrcData;
+                    setSessionItem(saveKey, JSON.stringify(data));
+                } else {
+                    if (lrc && lrc.lyric) {
+                        this.lyricParse(lrc.lyric);
+                        this.songType = SongType.Normal;
+                        _lrcData.lrc = lrc.lyric;
+                        _lrcData.type = this.songType;
+                        data[this.id] = _lrcData;
+                        setSessionItem(saveKey, JSON.stringify(data));
+                    } else {
+                        this.songType = SongType.None;
+                        _lrcData.type = this.songType;
+                        data[this.id] = _lrcData;
+                        setSessionItem(saveKey, JSON.stringify(data));
+                    }
+                }
+            } else {
+                const data = JSON.parse(lrcData);
+                const lyricData = data[this.id];
+                console.log(lyricData);
+                if (lyricData) {
+                    this.songType = lyricData.type;
+                    if (lyricData.type === SongType.Normal) {
+                        this.lyricParse(lyricData.lrc);
+                    } else if (lyricData.type === SongType.Advance) {
+                        this.lyricParse2(lyricData.lrc);
+                    }
+                }
+            } // todo 缓存里没有的情况
+            // if (lyric) this.lyricParse2(lyric);
         } catch (err) {
             console.error(err);
         }
@@ -92,7 +149,9 @@ export default class Lyric extends Vue {
     }
 
     initBScroll (): void {
-        bscroll = new BScroll((this.$refs as any).scroll);
+        bscroll = new BScroll((this.$refs as any).scroll, {
+            click: true
+        });
     }
 
     lyricParse (lyric: string): void {
@@ -121,7 +180,6 @@ export default class Lyric extends Vue {
     }
 
     lyricParse2 (lyric: string): void {
-        mode = 2;
         const lyricList: string[] = lyric.split(/\n/);
         const lyricData: any[] = [];
         lyricList.forEach((c: string, i: number): void => {
@@ -156,9 +214,18 @@ export default class Lyric extends Vue {
         console.log(lyricData);
     }
 
+    @Watch('id')
+    onIdChanged (v: string) {
+        if (this.visibile) {
+            console.log(555);
+        } else {
+            isGetLyric = true;
+        }
+    }
+
     @Watch('visibile')
     onVisibileChanged (v: boolean) {
-        if (v) {
+        if (v && isGetLyric) {
             void this.getSongLyric();
         }
     }
@@ -166,6 +233,8 @@ export default class Lyric extends Vue {
 </script>
 
 <style lang="scss" scoped>
+@import '../../../assets/scss/variable';
+
 .lyric {
     position: absolute;
     top: 46px;
@@ -184,17 +253,21 @@ export default class Lyric extends Vue {
         z-index: 1;
 
         ul {
-            text-align: center;
+            @include flexbox(center, normal, column);
             padding: 0 18%;
             font-size: 14px;
             color: #999;
 
             li {
                 padding: 10px 0;
+                color: transparent;
+                background-image: linear-gradient(to right, #fff 50%, #b3b3b3 55%);
+                background-size: 220% 100%;
+                background-position: 100% 50%;
+                -webkit-background-clip: text;
 
                 &.active {
-                    color: #e6e6e6;
-                    transition: color .3s linear;
+                    transition: background-position .3s linear;
                 }
             }
         }
